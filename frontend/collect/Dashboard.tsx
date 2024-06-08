@@ -1,8 +1,21 @@
 import { Button, FileInput, Stack, Title } from '@mantine/core'
 import { useGeolocation } from '@uidotdev/usehooks'
-import { addDoc, collection } from 'firebase/firestore'
 import React, { useState } from 'react'
-import { db, model } from './Auth'
+import { model } from './Auth'
+
+async function fileToGenerativePart(file) {
+  const base64EncodedDataPromise = new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve((reader.result as string | null)?.split(',')[1])
+    reader.readAsDataURL(file)
+  })
+  return {
+    inlineData: {
+      data: (await base64EncodedDataPromise) as string,
+      mimeType: file.type as string,
+    },
+  }
+}
 
 export const Dashboard = () => {
   const [file, setFile] = useState<File | null>(null)
@@ -15,26 +28,17 @@ export const Dashboard = () => {
   console.log(state)
 
   const onClick = async () => {
-    try {
-      const docRef = await addDoc(collection(db, 'users'), {
-        first: 'Ada',
-        last: 'Lovelace',
-        born: 1815,
-      })
-      console.log('Document written with ID: ', docRef.id)
-    } catch (e) {
-      console.error('Error adding document: ', e)
-    }
+    const imagePart = await fileToGenerativePart(file)
 
-    // Provide a prompt that contains text
-    const prompt = 'Write a story about a magic backpack.'
+    const prompt = 'What do you see?'
 
     // To generate text output, call generateContent with the text input
-    const result = await model.generateContent(prompt)
+    const result = await model.generateContentStream([prompt, imagePart])
 
-    const response = result.response
-    const text = response.text()
-    console.log(text)
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text()
+      console.log(chunkText)
+    }
   }
 
   return (
