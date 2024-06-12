@@ -19,8 +19,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-
-
 // @ts-expect-error - This is a debug token and should not be used in production
 self.FIREBASE_APPCHECK_DEBUG_TOKEN = Boolean(Config.NODE_ENV === 'development')
 
@@ -36,6 +34,9 @@ const vertexAI = getVertexAI(app)
 export const db = getFirestore(app)
 export const model = getGenerativeModel(vertexAI, {
   model: 'gemini-1.5-flash',
+  generationConfig: {
+    responseMimeType: 'application/json',
+  },
 })
 
 export const useAuth = () => {

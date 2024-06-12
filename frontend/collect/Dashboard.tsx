@@ -30,15 +30,26 @@ export const Dashboard = () => {
   const onClick = async () => {
     const imagePart = await fileToGenerativePart(file)
 
-    const prompt = 'What do you see?'
+    const prompt = JSON.stringify({
+      prompt: 'This is a picture of a piece of trash.',
+      response_fields: [
+        'color',
+        'material',
+        'shape',
+        'object',
+        'location',
+        'lighting',
+        'texture',
+        'size',
+        'condition',
+        'company',
+      ],
+    })
 
     // To generate text output, call generateContent with the text input
-    const result = await model.generateContentStream([prompt, imagePart])
+    const { response } = await model.generateContent([prompt, imagePart])
 
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text()
-      console.log(chunkText)
-    }
+    console.log(JSON.parse(response.text()))
   }
 
   return (
@@ -53,7 +64,9 @@ export const Dashboard = () => {
         capture='environment'
         accept='image/*'
       />
-      <Button onClick={onClick}>Generate</Button>
+      <Button loading={false} onClick={onClick}>
+        Generate
+      </Button>
     </Stack>
   )
 }
