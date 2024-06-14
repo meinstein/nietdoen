@@ -1,4 +1,4 @@
-import { Button, FileInput, Stack, Title } from '@mantine/core'
+import { Button, Code, FileInput, Stack, Text, Title } from '@mantine/core'
 import { useGeolocation } from '@uidotdev/usehooks'
 import React, { useState } from 'react'
 import { model } from './Auth'
@@ -18,6 +18,7 @@ async function fileToGenerativePart(file) {
 }
 
 export const Dashboard = () => {
+  const [res, setRes] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const state = useGeolocation({
     enableHighAccuracy: true,
@@ -31,18 +32,16 @@ export const Dashboard = () => {
     const imagePart = await fileToGenerativePart(file)
 
     const prompt = JSON.stringify({
-      prompt: 'This is a picture of a piece of trash.',
+      prompt:
+        'This is a picture of a sign. Describe it. Respond to the following fields. Each field should be an array of values.',
       response_fields: [
-        'color',
+        'colors',
         'material',
         'shape',
-        'object',
         'location',
-        'lighting',
-        'texture',
-        'size',
+        'sentiment',
         'condition',
-        'company',
+        'text',
       ],
     })
 
@@ -50,6 +49,7 @@ export const Dashboard = () => {
     const { response } = await model.generateContent([prompt, imagePart])
 
     console.log(JSON.parse(response.text()))
+    setRes(response.text())
   }
 
   return (
@@ -67,6 +67,9 @@ export const Dashboard = () => {
       <Button loading={false} onClick={onClick}>
         Generate
       </Button>
+      <Text>Lat: {state.latitude}</Text>
+      <Text>Long: {state.longitude}</Text>
+      <Code>{res}</Code>
     </Stack>
   )
 }
