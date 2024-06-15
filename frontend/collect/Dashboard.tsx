@@ -1,4 +1,4 @@
-import { Button, Code, FileInput, Stack, Text, Title } from '@mantine/core'
+import { Button, Code, FileInput, Image, Stack, Text, Title } from '@mantine/core'
 import { useGeolocation } from '@uidotdev/usehooks'
 import React, { useState } from 'react'
 import { model } from './Auth'
@@ -18,6 +18,8 @@ async function fileToGenerativePart(file) {
 }
 
 export const Dashboard = () => {
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const [res, setRes] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const state = useGeolocation({
@@ -26,30 +28,35 @@ export const Dashboard = () => {
     maximumAge: 0,
   })
 
-  console.log(state)
-
   const onClick = async () => {
-    const imagePart = await fileToGenerativePart(file)
+    setError(null)
+    setLoading(true)
 
-    const prompt = JSON.stringify({
-      prompt:
-        'This is a picture of a sign. Describe it. Respond to the following fields. Each field should be an array of values.',
-      response_fields: [
-        'colors',
-        'material',
-        'shape',
-        'location',
-        'sentiment',
-        'condition',
-        'text',
-      ],
-    })
+    try {
+      const imagePart = await fileToGenerativePart(file)
 
-    // To generate text output, call generateContent with the text input
-    const { response } = await model.generateContent([prompt, imagePart])
+      const prompt = JSON.stringify({
+        prompt:
+          'This is a picture of a sign. Describe it. Respond to the following fields. Each field should be an array of values.',
+        response_fields: [
+          'colors',
+          'material',
+          'shape',
+          'location',
+          'sentiment',
+          'condition',
+          'text',
+        ],
+      })
 
-    console.log(JSON.parse(response.text()))
-    setRes(response.text())
+      // To generate text output, call generateContent with the text input
+      const { response } = await model.generateContent([prompt, imagePart])
+
+      setRes(response.text())
+    } catch (error) {
+      setError(error.message)
+    }
+    setLoading(false)
   }
 
   return (
@@ -57,19 +64,28 @@ export const Dashboard = () => {
       <Title order={3}>Upload</Title>
       <FileInput
         clearable
-        placeholder='Upload image'
-        label='Upload image'
+        placeholder='Tap here to upload image'
         value={file}
         onChange={setFile}
         capture='environment'
         accept='image/*'
       />
-      <Button loading={false} onClick={onClick}>
+      {file && (
+        <Image
+          mah={200}
+          w='auto'
+          fit='contain'
+          src={URL.createObjectURL(file)}
+          alt='Uploaded image'
+        />
+      )}
+      {/* <Text>Lat: {state.latitude}</Text> */}
+      {/* <Text>Long: {state.longitude}</Text> */}
+      {res && <Code>{res}</Code>}
+      {error && <Text c='red'>{error}</Text>}
+      <Button disabled={!file} loading={loading} onClick={onClick}>
         Generate
       </Button>
-      <Text>Lat: {state.latitude}</Text>
-      <Text>Long: {state.longitude}</Text>
-      <Code>{res}</Code>
     </Stack>
   )
 }
