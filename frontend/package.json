@@ -7,7 +7,7 @@
     "build": "parcel build",
     "start:collect": "parcel collect/index.html",
     "lint:collect": "eslint collect/**/*.tsx",
-    "deploy": "npm run build && firebase use nietdoen && firebase deploy"
+    "deploy": "npm run build && firebase use nietdoen && firebase deploy --only hosting"
   },
   "author": "",
   "license": "ISC",
