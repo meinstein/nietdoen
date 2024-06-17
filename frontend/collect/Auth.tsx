@@ -4,6 +4,7 @@ import { initializeApp } from 'firebase/app'
 import { ReCaptchaEnterpriseProvider, initializeAppCheck } from 'firebase/app-check'
 import { User, getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+import { getStorage } from 'firebase/storage'
 import {
   HarmBlockMethod,
   HarmBlockThreshold,
@@ -26,18 +27,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 
 // @ts-expect-error - This is a debug token and should not be used in production
-self.FIREBASE_APPCHECK_DEBUG_TOKEN = Boolean(Config.NODE_ENV === 'development')
+self.FIREBASE_APPCHECK_DEBUG_TOKEN = Config.FIREBASE_APPCHECK_DEBUG_TOKEN
 
 initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider(Config.RECAPTCHA_SITE_KEY),
   isTokenAutoRefreshEnabled: true,
 })
 
-console.log(Config)
-
 const auth = getAuth(app)
+
 const vertexAI = getVertexAI(app)
+
 export const db = getFirestore(app)
+
+export const storage = getStorage(app)
+
 export const model = getGenerativeModel(vertexAI, {
   model: 'gemini-1.5-flash',
   safetySettings: [
