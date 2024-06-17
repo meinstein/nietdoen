@@ -4,7 +4,13 @@ import { initializeApp } from 'firebase/app'
 import { ReCaptchaEnterpriseProvider, initializeAppCheck } from 'firebase/app-check'
 import { User, getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
-import { getGenerativeModel, getVertexAI } from 'firebase/vertexai-preview'
+import {
+  HarmBlockMethod,
+  HarmBlockThreshold,
+  HarmCategory,
+  getGenerativeModel,
+  getVertexAI,
+} from 'firebase/vertexai-preview'
 import React, { useEffect } from 'react'
 import { Config } from '../config'
 
@@ -34,6 +40,33 @@ const vertexAI = getVertexAI(app)
 export const db = getFirestore(app)
 export const model = getGenerativeModel(vertexAI, {
   model: 'gemini-1.5-flash',
+  safetySettings: [
+    {
+      category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+      method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+      method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+      method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+      method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+      method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
+    },
+  ],
   generationConfig: {
     responseMimeType: 'application/json',
   },
