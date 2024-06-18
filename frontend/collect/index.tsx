@@ -3,6 +3,7 @@ import '@mantine/core/styles.css'
 import * as React from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
+import 'react-image-crop/dist/ReactCrop.css'
 
 const rootNode = document.getElementById('root')
 const root = createRoot(rootNode as HTMLElement)

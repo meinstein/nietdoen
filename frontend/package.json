@@ -4,8 +4,9 @@
   "description": "",
   "source": "collect/index.html",
   "scripts": {
-    "build": "parcel build",
-    "start:collect": "parcel collect/index.html --no-cache",
+    "rm": "rm -rf dist",
+    "build": "npm run rm && parcel build",
+    "start:collect": "npm run rm && parcel collect/index.html --no-cache",
     "lint:collect": "eslint collect/**/*.tsx",
     "deploy": "npm run build && firebase use nietdoen && firebase deploy --only hosting"
   },
@@ -18,7 +19,8 @@
     "@uidotdev/usehooks": "^2.4.1",
     "firebase": "^10.12.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-image-crop": "^11.0.5"
   },
   "devDependencies": {
     "@types/node": "^20.14.1",
