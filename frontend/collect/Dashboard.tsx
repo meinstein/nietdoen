@@ -1,19 +1,35 @@
-import { Button, Code, FileInput, Image, Stack, Text, Title } from '@mantine/core'
+import { Button, FileInput, Image, Stack, TagsInput, Text, TextInput, Title } from '@mantine/core'
 import { useGeolocation } from '@uidotdev/usehooks'
 import { ref, uploadBytes } from 'firebase/storage'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { model, storage } from './Auth'
+
+type AIResponse = {
+  colors: string[]
+  materials: string[]
+  shapes: string[]
+  icons: string[]
+  location: string[]
+  text: string[]
+  fonts: string[]
+}
 
 export const Dashboard = () => {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [res, setRes] = useState<string | null>(null)
+  const [res, setRes] = useState<AIResponse | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const state = useGeolocation({
     enableHighAccuracy: true,
     timeout: 5000,
     maximumAge: 0,
   })
+
+  useEffect(() => {
+    if (!file) {
+      setRes(null)
+    }
+  }, [file])
 
   const onClick = async () => {
     if (!file) return
@@ -23,14 +39,10 @@ export const Dashboard = () => {
 
     try {
       const imageId = Date.now()
-      const storageRef = ref(storage, String(imageId))
+      const storageRef = ref(storage, `images/${imageId}`)
       const uploadResult = await uploadBytes(storageRef, file, {
         contentType: file.type,
       })
-
-      // Get the MIME type and Cloud Storage for Firebase URL.
-      // toString() is the simplest way to construct the Cloud Storage for Firebase URL
-      // in the required format.
       const mimeType = uploadResult.metadata.contentType
       const storageUrl = uploadResult.ref.toString()
 
@@ -39,12 +51,14 @@ export const Dashboard = () => {
           'This is a picture of a sign. Describe it. Respond to the following fields. Each field should be an array of values.',
         response_fields: [
           'colors',
-          'material',
-          'shape',
+          'materials',
+          'shapes',
+          'icons',
           'location',
-          'sentiment',
-          'condition',
           'text',
+          'fonts',
+          'language',
+          'english_translation',
         ],
       })
 
@@ -60,7 +74,9 @@ export const Dashboard = () => {
       // To generate text output, call generateContent with the text input
       const { response } = await model.generateContent([prompt, imagePart])
 
-      setRes(response.text())
+      console.log(JSON.parse(response.text()))
+
+      setRes(JSON.parse(response.text()))
     } catch (error) {
       setError(error.message)
     }
@@ -87,9 +103,11 @@ export const Dashboard = () => {
           alt='Uploaded image'
         />
       )}
-      {/* <Text>Lat: {state.latitude}</Text> */}
-      {/* <Text>Long: {state.longitude}</Text> */}
-      {res && <Code>{res}</Code>}
+      <TextInput disabled label='Coordinates' value={`${state.latitude}, ${state.longitude}`} />
+      {res && <TagsInput label='Colors' defaultValue={res.colors} />}
+      {res && <TagsInput label='Fonts' defaultValue={res.fonts} />}
+      {res && <TagsInput label='Shapes' defaultValue={res.shapes} />}
+      {res && <TagsInput label='Text' defaultValue={res.text} />}
       {error && <Text c='red'>{error}</Text>}
       <Button disabled={!file} loading={loading} onClick={onClick}>
         Generate

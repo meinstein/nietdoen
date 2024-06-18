@@ -5,7 +5,7 @@
   "source": "collect/index.html",
   "scripts": {
     "build": "parcel build",
-    "start:collect": "parcel collect/index.html",
+    "start:collect": "parcel collect/index.html --no-cache",
     "lint:collect": "eslint collect/**/*.tsx",
     "deploy": "npm run build && firebase use nietdoen && firebase deploy --only hosting"
   },
