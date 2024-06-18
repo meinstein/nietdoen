@@ -11,6 +11,7 @@ import {
   Title,
 } from '@mantine/core'
 import { useGeolocation } from '@uidotdev/usehooks'
+import { readAndCompressImage } from 'browser-image-resizer'
 import { addDoc, collection } from 'firebase/firestore'
 import { ref, uploadBytes } from 'firebase/storage'
 import React, { useEffect, useState } from 'react'
@@ -55,9 +56,17 @@ export const Dashboard = () => {
     try {
       const imageId = Date.now()
       const storageRef = ref(storage, `images/${imageId}`)
-      const uploadResult = await uploadBytes(storageRef, file, {
+
+      const resizedImage = await readAndCompressImage(file, {
+        quality: 0.75,
+        maxWidth: 800,
+        mimeType: file.type,
+      })
+
+      const uploadResult = await uploadBytes(storageRef, resizedImage, {
         contentType: file.type,
       })
+
       const mimeType = uploadResult.metadata.contentType
       const storageUrl = uploadResult.ref.toString()
       setStorageUrl(storageUrl)
