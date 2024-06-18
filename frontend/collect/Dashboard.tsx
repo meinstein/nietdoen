@@ -2,6 +2,7 @@ import {
   Button,
   FileInput,
   Group,
+  Image,
   Radio,
   Stack,
   TagsInput,
@@ -13,7 +14,6 @@ import { useGeolocation } from '@uidotdev/usehooks'
 import { addDoc, collection } from 'firebase/firestore'
 import { ref, uploadBytes } from 'firebase/storage'
 import React, { useEffect, useState } from 'react'
-import ReactCrop, { Crop } from 'react-image-crop'
 import { db, model, storage } from './Auth'
 
 type AIResponse = {
@@ -27,13 +27,6 @@ type AIResponse = {
 type AIResponseKeys = keyof AIResponse
 
 export const Dashboard = () => {
-  const [crop, setCrop] = useState<Crop>({
-    unit: 'px',
-    x: 0,
-    y: 0,
-    width: 100,
-    height: 100,
-  })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [language, setLanguage] = useState<string>('dutch')
@@ -131,7 +124,6 @@ export const Dashboard = () => {
         value={file}
         onChange={setFile}
         accept='image/*'
-        capture='environment'
       />
       <Radio.Group name='language' label='Language' value={language} onChange={setLanguage}>
         <Group mt='xs'>
@@ -141,9 +133,13 @@ export const Dashboard = () => {
       </Radio.Group>
       <TextInput disabled label='Coordinates' value={`${state.latitude}, ${state.longitude}`} />
       {file && (
-        <ReactCrop aspect={1} crop={crop} onChange={c => setCrop(c)}>
-          <img src={URL.createObjectURL(file)} />
-        </ReactCrop>
+        <Image
+          mah={200}
+          w='auto'
+          fit='contain'
+          src={URL.createObjectURL(file)}
+          alt='Uploaded image'
+        />
       )}
       {res && <TagsInput label='Colors' defaultValue={res.colors} />}
       {res && <TagsInput label='Fonts' defaultValue={res.fonts} />}
