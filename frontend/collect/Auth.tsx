@@ -16,12 +16,13 @@ import React, { useEffect } from 'react'
 import { Config } from '../config'
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCxU0t-ZE5snXRwUQwMYVJ8iqXRGMzzp6k',
-  authDomain: 'nietdoen.firebaseapp.com',
-  projectId: 'nietdoen',
-  storageBucket: 'nietdoen.appspot.com',
-  messagingSenderId: '1070935575790',
-  appId: '1:1070935575790:web:359a8a6054407995eff7ff',
+  apiKey: Config.FIREBASE_API_KEY,
+  authDomain: Config.FIREBASE_AUTH_DOMAIN,
+  projectId: Config.FIREBASE_PROJECT_ID,
+  storageBucket: Config.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: Config.FIREBASE_MESSAGING_SENDER_ID,
+  appId: Config.FIREBASE_APP_ID,
+  measurementId: Config.FIREBASE_MEASUREMENT_ID,
 }
 
 const app = initializeApp(firebaseConfig)
@@ -47,27 +48,27 @@ export const model = getGenerativeModel(vertexAI, {
   safetySettings: [
     {
       category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
       method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
     },
     {
       category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
       method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
     },
     {
       category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
       method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
     },
     {
       category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
       method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
     },
     {
       category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
       method: HarmBlockMethod.HARM_BLOCK_METHOD_UNSPECIFIED,
     },
   ],
