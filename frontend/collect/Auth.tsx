@@ -27,8 +27,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-// @ts-expect-error - This is a debug token and should not be used in production
-self.FIREBASE_APPCHECK_DEBUG_TOKEN = Config.FIREBASE_APPCHECK_DEBUG_TOKEN
+if (Config.FIREBASE_APPCHECK_DEBUG_TOKEN) {
+  // @ts-expect-error - This is a debug token and should not be used in production
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = Config.FIREBASE_APPCHECK_DEBUG_TOKEN
+}
 
 initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider(Config.RECAPTCHA_SITE_KEY),

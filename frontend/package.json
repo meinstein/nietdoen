@@ -5,7 +5,7 @@
   "source": "collect/index.html",
   "scripts": {
     "rm": "rm -rf dist",
-    "build": "npm run rm && npx parcel build",
+    "build": "npm run rm && npx parcel build --no-cache",
     "start:collect": "npm run rm && npx parcel collect/index.html --no-cache",
     "lint:collect": "eslint collect/**/*.tsx",
     "deploy": "npm run build && firebase use nietdoen && firebase deploy --only hosting"
