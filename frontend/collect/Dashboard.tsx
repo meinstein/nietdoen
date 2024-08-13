@@ -3,7 +3,6 @@ import {
   FileInput,
   Group,
   Image,
-  Radio,
   Select,
   Stack,
   TagsInput,
@@ -18,32 +17,10 @@ import { addDoc, collection, GeoPoint, Timestamp } from 'firebase/firestore'
 import { ref, uploadBytes } from 'firebase/storage'
 import React, { useEffect, useState } from 'react'
 import { db, model, storage } from './Auth'
+import { Field, KEYS, Options, response_fields } from './responseFields'
+import { dayjs } from './utils'
 
-const KEYS = [
-  'colors',
-  'text',
-  'symbols',
-  'condition',
-  'location',
-  'sentiment',
-  'material',
-] as const
-
-type Field = (typeof KEYS)[number]
 type AIResponse = Record<Field, string | string[]>
-
-type AIPrompt = {
-  field: Field
-  response_type: 'string' | 'array'
-  instructions: string
-  options?: string[]
-  language?: string
-}
-const COLORS = ['white', 'black', 'red', 'green', 'blue', 'yellow', 'orange', 'purple', 'brown']
-const CONDITION = ['new', 'good', 'fair', 'poor']
-const LOCATION = ['window', 'fence', 'wall', 'door', 'ground', 'other']
-const SENTIMENT = ['positive', 'negative', 'neutral']
-const MATERIAL = ['metal', 'plastic', 'wood', 'paper', 'other']
 
 export const Dashboard = () => {
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +29,7 @@ export const Dashboard = () => {
   const [res, setRes] = useState<AIResponse | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [storageUrls, setStorageUrls] = useState<{ sm: string; lg: string } | null>(null)
-  const state = useGeolocation({
+  const geo = useGeolocation({
     enableHighAccuracy: true,
     timeout: 5000,
     maximumAge: 0,
@@ -100,57 +77,6 @@ export const Dashboard = () => {
         lg: uploadResultLg.ref.toString(),
       })
 
-      const response_fields: AIPrompt[] = [
-        {
-          field: 'colors',
-          instructions:
-            'Select all colors that are present in the image. Only select the colors from the options below.',
-          response_type: 'array',
-          options: COLORS,
-        },
-        {
-          field: 'text',
-          instructions:
-            'What does the sign literally say? Please provide the text as a string. Include any line breaks.',
-          response_type: 'string',
-          language: `${language}`,
-        },
-        {
-          field: 'symbols',
-          instructions:
-            'What symbols, if any, are present on the sign? If none, return an empty array.',
-          response_type: 'array',
-        },
-        {
-          field: 'condition',
-          instructions:
-            'What is the condition of the sign? Only select the condition from the options below.',
-          response_type: 'string',
-          options: CONDITION,
-        },
-        {
-          field: 'location',
-          instructions:
-            'Where is the sign located? Only select the location from the options below.',
-          response_type: 'string',
-          options: LOCATION,
-        },
-        {
-          field: 'sentiment',
-          instructions:
-            'What is the sentiment of the sign? Only select the sentiment from the options below.',
-          response_type: 'string',
-          options: SENTIMENT,
-        },
-        {
-          field: 'material',
-          instructions:
-            'What is the material of the sign? Only select the material from the options below.',
-          response_type: 'string',
-          options: MATERIAL,
-        },
-      ]
-
       const prompt = JSON.stringify({
         context: `This is a picture of a sign written in ${language} that forbids bicycles from being parked here. Following the instructions in each of the response fields, please provide the requested information. The response should be an object with the following keys: ${KEYS.join()}.`,
         response_fields,
@@ -176,7 +102,7 @@ export const Dashboard = () => {
   }
 
   const onSave = async () => {
-    if (!res || !storageUrls || !state.latitude || !state.longitude) return
+    if (!res || !storageUrls || !geo.latitude || !geo.longitude) return
     setLoading(true)
 
     const data = {
@@ -188,9 +114,13 @@ export const Dashboard = () => {
       material: res.material,
       colors: res.colors,
       text: res.text,
+      casing: res.casing,
+      design: res.design,
+      tone: res.tone,
+      shape: res.shape,
       storage_urls: storageUrls,
       created_at: new Timestamp(Date.now() / 1000, 0),
-      coordinates: new GeoPoint(state.latitude, state.longitude),
+      coordinates: new GeoPoint(geo.latitude, geo.longitude),
     }
 
     await addDoc(collection(db, 'signs'), data)
@@ -198,6 +128,8 @@ export const Dashboard = () => {
     setFile(null)
     setLoading(false)
   }
+
+  const geoLastUpdated = dayjs(geo.timestamp).fromNow()
 
   return (
     <Stack p='lg'>
@@ -209,13 +141,23 @@ export const Dashboard = () => {
         onChange={setFile}
         accept='image/*'
       />
-      <Radio.Group name='language' label='Language' value={language} onChange={setLanguage}>
-        <Group mt='xs'>
-          <Radio value='dutch' label='Dutch' />
-          <Radio value='english' label='English' />
-        </Group>
-      </Radio.Group>
-      <TextInput disabled label='Coordinates' value={`${state.latitude}, ${state.longitude}`} />
+      <Group>
+        <Select
+          flex={1}
+          data={['dutch', 'english']}
+          label='Language'
+          value={language}
+          onChange={lang => {
+            setLanguage(lang as string)
+          }}
+        />
+        <TextInput
+          flex={2}
+          disabled
+          label={`Coordinates (${geo.loading ? '' : geoLastUpdated})`}
+          value={geo.loading ? 'Loading...' : `${geo.latitude}, ${geo.longitude}`}
+        />
+      </Group>
       {file && (
         <Image
           mah={200}
@@ -227,16 +169,39 @@ export const Dashboard = () => {
       )}
       {res && <Textarea label='Text' defaultValue={res.text} />}
       <Group>
+        {res?.casing && (
+          <Select
+            flex={1}
+            label='Casing'
+            data={Options.CASING}
+            defaultValue={res.casing as string}
+          />
+        )}
+        {res?.design && (
+          <Select
+            flex={1}
+            label='design'
+            data={Options.DESIGN}
+            defaultValue={res.design as string}
+          />
+        )}
+      </Group>
+      <Group>
         {res?.condition && (
           <Select
             flex={1}
             label='Condition'
-            data={CONDITION}
+            data={Options.CONDITION}
             defaultValue={res.condition as string}
           />
         )}
         {res?.location && (
-          <Select flex={1} label='Location' data={LOCATION} defaultValue={res.location as string} />
+          <Select
+            flex={1}
+            label='Location'
+            data={Options.LOCATION}
+            defaultValue={res.location as string}
+          />
         )}
       </Group>
       <Group>
@@ -244,12 +209,25 @@ export const Dashboard = () => {
           <Select
             flex={1}
             label='Sentiment'
-            data={SENTIMENT}
+            data={Options.SENTIMENT}
             defaultValue={res.sentiment as string}
           />
         )}
+        {res?.tone && (
+          <Select flex={1} label='Tone' data={Options.TONE} defaultValue={res.tone as string} />
+        )}
+      </Group>
+      <Group>
+        {res?.shape && (
+          <Select flex={1} label='Shape' data={Options.SHAPE} defaultValue={res.shape as string} />
+        )}
         {res?.material && (
-          <Select flex={1} label='Material' data={MATERIAL} defaultValue={res.material as string} />
+          <Select
+            flex={1}
+            label='Material'
+            data={Options.MATERIAL}
+            defaultValue={res.material as string}
+          />
         )}
       </Group>
       {res?.colors && <TagsInput label='Colors' defaultValue={res.colors as string[]} />}
