@@ -20,14 +20,61 @@ import React, { useEffect, useState } from 'react'
 import { db, model, storage } from './Auth'
 import { Field, KEYS, Options, response_fields } from './responseFields'
 import { dayjs } from './utils'
+import { useForm } from '@mantine/form'
 
 type AIResponse = Record<Field, string | string[]>
 
+const convertNaToNull = (value: string) => (value === 'n/a' ? null : value)
+
 export const Dashboard = () => {
+  const form = useForm({
+    mode: 'controlled',
+    initialValues: {
+      casing: '',
+      colors: [],
+      condition: '',
+      design: '',
+      location: '',
+      material: '',
+      sentiment: '',
+      shape: '',
+      symbols: [],
+      text: '',
+      tone: '',
+    },
+    validate: {
+      // casing, text, and tone are optional
+      colors: value => {
+        if (value.length === 0) return 'Please select at least one color'
+      },
+      condition: value => {
+        if (!value) return 'Please select a condition'
+      },
+      design: value => {
+        if (!value) return 'Please select a design'
+      },
+      location: value => {
+        if (!value) return 'Please select a location'
+      },
+      material: value => {
+        if (!value) return 'Please select a material'
+      },
+      sentiment: value => {
+        if (!value) return 'Please select a sentiment'
+      },
+      shape: value => {
+        if (!value) return 'Please select a shape'
+      },
+      symbols: value => {
+        if (value.length === 0) return 'Please select at least one symbol'
+      },
+    }
+  })
+
+  const [response, setResponse] = useState<AIResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [language, setLanguage] = useState<string>('dutch')
-  const [res, setRes] = useState<AIResponse | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [storageUrls, setStorageUrls] = useState<{ sm: string; lg: string } | null>(null)
 
@@ -37,11 +84,10 @@ export const Dashboard = () => {
     maximumAge: 0,
   })
 
-  console.log(res)
-
   useEffect(() => {
     if (!file) {
-      setRes(null)
+      form.reset()
+      setResponse(null)
       setStorageUrls(null)
     }
   }, [file])
@@ -97,38 +143,46 @@ export const Dashboard = () => {
 
       // To generate text output, call generateContent with the text input
       const { response } = await model.generateContent([prompt, imagePart])
-      console.log(JSON.parse(response.text()))
-      setRes(JSON.parse(response.text()))
+      const resData = JSON.parse(response.text())
+      form.setValues(resData)
+      setResponse(resData)
     } catch (error) {
       setError(error.message)
     }
     setLoading(false)
   }
 
-  const onSave = async () => {
-    if (!res || !storageUrls || !geo.latitude || !geo.longitude) return
+  const onSubmit = async () => {
+    if (form.validate().hasErrors) {
+      return
+    }
+
+    if (!storageUrls || !geo.latitude || !geo.longitude) return
     setLoading(true)
+
+    const values = form.getValues()
 
     const data = {
       language,
-      symbols: res.symbols,
-      condition: res.condition,
-      location: res.location,
-      sentiment: res.sentiment,
-      material: res.material,
-      colors: res.colors,
-      text: res.text,
-      casing: res.casing,
-      design: res.design,
-      tone: res.tone,
-      shape: res.shape,
+      symbols: values.symbols,
+      condition: values.condition,
+      location: values.location,
+      sentiment: values.sentiment,
+      material: values.material,
+      colors: values.colors,
+      text: convertNaToNull(values.text),
+      casing: convertNaToNull(values.casing),
+      design: values.design,
+      tone: convertNaToNull(values.tone),
+      shape: values.shape,
       storage_urls: storageUrls,
       created_at: new Timestamp(Date.now() / 1000, 0),
       coordinates: new GeoPoint(geo.latitude, geo.longitude),
     }
 
     await addDoc(collection(db, 'signs'), data)
-    setRes(null)
+    form.reset()
+    setResponse(null)
     setFile(null)
     setLoading(false)
   }
@@ -171,21 +225,23 @@ export const Dashboard = () => {
           alt='Uploaded image'
         />
       )}
-      {res && (
+      {response && (
         <>
-          <Textarea label='Text' defaultValue={res.text} />
+          <Textarea label='Text' key={form.key('text')} {...form.getInputProps('text')} />
           <Group>
             <Select
               flex={1}
               label='Casing'
               data={Options.CASING}
-              defaultValue={res.casing as string}
+              key={form.key('casing')}
+              {...form.getInputProps('casing')}
             />
             <Select
               flex={1}
               label='design'
               data={Options.DESIGN}
-              defaultValue={res.design as string}
+              key={form.key('design')}
+              {...form.getInputProps('design')}
             />
           </Group>
           <Group>
@@ -193,13 +249,15 @@ export const Dashboard = () => {
               flex={1}
               label='Condition'
               data={Options.CONDITION}
-              defaultValue={res.condition as string}
+              key={form.key('condition')}
+              {...form.getInputProps('condition')}
             />
             <Autocomplete
               flex={1}
               label='Location'
               data={Options.LOCATION}
-              defaultValue={res.location as string}
+              key={form.key('location')}
+              {...form.getInputProps('location')}
             />
           </Group>
           <Group>
@@ -207,37 +265,47 @@ export const Dashboard = () => {
               flex={1}
               label='Sentiment'
               data={Options.SENTIMENT}
-              defaultValue={res.sentiment as string}
+              key={form.key('sentiment')}
+              {...form.getInputProps('sentiment')}
             />
-            <Select flex={1} label='Tone' data={Options.TONE} defaultValue={res.tone as string} />
+            <Select
+              flex={1}
+              label='Tone'
+              data={Options.TONE}
+              key={form.key('tone')}
+              {...form.getInputProps('tone')}
+            />
           </Group>
           <Group>
             <Autocomplete
               flex={1}
               label='Shape'
               data={Options.SHAPE}
-              defaultValue={res.shape as string}
+              key={form.key('shape')}
+              {...form.getInputProps('shape')}
             />
             <Autocomplete
               flex={1}
               label='Material'
               data={Options.MATERIAL}
-              defaultValue={res.material as string}
+              key={form.key('material')}
+              {...form.getInputProps('material')}
             />
           </Group>
-          <TagsInput label='Colors' defaultValue={res.colors as string[]} />
-          <TagsInput label='Symbols' defaultValue={res.symbols as string[]} />
+          <TagsInput label='Colors' key={form.key('colors')} {...form.getInputProps('colors')} />
+          <TagsInput label='Symbols' key={form.key('symbols')} {...form.getInputProps('symbols')} />
         </>
       )}
+
       {error && <Text c='red'>{error}</Text>}
-      {file && !res && (
+      {file && !response && (
         <Button loading={loading} onClick={onAnalyze}>
           Analyze
         </Button>
       )}
-      {file && res && (
-        <Button loading={loading} onClick={onSave}>
-          Save
+      {file && response && (
+        <Button loading={loading} onClick={onSubmit}>
+          Submit
         </Button>
       )}
     </Stack>
