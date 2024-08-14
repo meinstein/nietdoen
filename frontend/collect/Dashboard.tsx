@@ -1,4 +1,5 @@
 import {
+  Autocomplete,
   Button,
   FileInput,
   Group,
@@ -29,11 +30,14 @@ export const Dashboard = () => {
   const [res, setRes] = useState<AIResponse | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [storageUrls, setStorageUrls] = useState<{ sm: string; lg: string } | null>(null)
+
   const geo = useGeolocation({
     enableHighAccuracy: true,
     timeout: 5000,
     maximumAge: 0,
   })
+
+  console.log(res)
 
   useEffect(() => {
     if (!file) {
@@ -167,71 +171,64 @@ export const Dashboard = () => {
           alt='Uploaded image'
         />
       )}
-      {res && <Textarea label='Text' defaultValue={res.text} />}
-      <Group>
-        {res?.casing && (
-          <Select
-            flex={1}
-            label='Casing'
-            data={Options.CASING}
-            defaultValue={res.casing as string}
-          />
-        )}
-        {res?.design && (
-          <Select
-            flex={1}
-            label='design'
-            data={Options.DESIGN}
-            defaultValue={res.design as string}
-          />
-        )}
-      </Group>
-      <Group>
-        {res?.condition && (
-          <Select
-            flex={1}
-            label='Condition'
-            data={Options.CONDITION}
-            defaultValue={res.condition as string}
-          />
-        )}
-        {res?.location && (
-          <Select
-            flex={1}
-            label='Location'
-            data={Options.LOCATION}
-            defaultValue={res.location as string}
-          />
-        )}
-      </Group>
-      <Group>
-        {res?.sentiment && (
-          <Select
-            flex={1}
-            label='Sentiment'
-            data={Options.SENTIMENT}
-            defaultValue={res.sentiment as string}
-          />
-        )}
-        {res?.tone && (
-          <Select flex={1} label='Tone' data={Options.TONE} defaultValue={res.tone as string} />
-        )}
-      </Group>
-      <Group>
-        {res?.shape && (
-          <Select flex={1} label='Shape' data={Options.SHAPE} defaultValue={res.shape as string} />
-        )}
-        {res?.material && (
-          <Select
-            flex={1}
-            label='Material'
-            data={Options.MATERIAL}
-            defaultValue={res.material as string}
-          />
-        )}
-      </Group>
-      {res?.colors && <TagsInput label='Colors' defaultValue={res.colors as string[]} />}
-      {res?.symbols && <TagsInput label='Symbols' defaultValue={res.symbols as string[]} />}
+      {res && (
+        <>
+          <Textarea label='Text' defaultValue={res.text} />
+          <Group>
+            <Select
+              flex={1}
+              label='Casing'
+              data={Options.CASING}
+              defaultValue={res.casing as string}
+            />
+            <Select
+              flex={1}
+              label='design'
+              data={Options.DESIGN}
+              defaultValue={res.design as string}
+            />
+          </Group>
+          <Group>
+            <Select
+              flex={1}
+              label='Condition'
+              data={Options.CONDITION}
+              defaultValue={res.condition as string}
+            />
+            <Autocomplete
+              flex={1}
+              label='Location'
+              data={Options.LOCATION}
+              defaultValue={res.location as string}
+            />
+          </Group>
+          <Group>
+            <Select
+              flex={1}
+              label='Sentiment'
+              data={Options.SENTIMENT}
+              defaultValue={res.sentiment as string}
+            />
+            <Select flex={1} label='Tone' data={Options.TONE} defaultValue={res.tone as string} />
+          </Group>
+          <Group>
+            <Autocomplete
+              flex={1}
+              label='Shape'
+              data={Options.SHAPE}
+              defaultValue={res.shape as string}
+            />
+            <Autocomplete
+              flex={1}
+              label='Material'
+              data={Options.MATERIAL}
+              defaultValue={res.material as string}
+            />
+          </Group>
+          <TagsInput label='Colors' defaultValue={res.colors as string[]} />
+          <TagsInput label='Symbols' defaultValue={res.symbols as string[]} />
+        </>
+      )}
       {error && <Text c='red'>{error}</Text>}
       {file && !res && (
         <Button loading={loading} onClick={onAnalyze}>
