@@ -1,5 +1,4 @@
 import {
-  Autocomplete,
   Button,
   FileInput,
   Group,
@@ -12,6 +11,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { useGeolocation } from '@uidotdev/usehooks'
 import { readAndCompressImage } from 'browser-image-resizer'
 import { addDoc, collection, GeoPoint, Timestamp } from 'firebase/firestore'
@@ -20,7 +20,6 @@ import React, { useEffect, useState } from 'react'
 import { db, model, storage } from './Auth'
 import { Field, KEYS, Options, response_fields } from './responseFields'
 import { dayjs } from './utils'
-import { useForm } from '@mantine/form'
 
 type AIResponse = Record<Field, string | string[]>
 
@@ -30,6 +29,7 @@ export const Dashboard = () => {
   const form = useForm({
     mode: 'controlled',
     initialValues: {
+      language: 'dutch',
       casing: '',
       colors: [],
       condition: '',
@@ -41,6 +41,12 @@ export const Dashboard = () => {
       symbols: [],
       text: '',
       tone: '',
+      lat: null,
+      lng: null,
+      storageUrls: {
+        sm: '',
+        lg: '',
+      },
     },
     validate: {
       // casing, text, and tone are optional
@@ -68,15 +74,19 @@ export const Dashboard = () => {
       symbols: value => {
         if (value.length === 0) return 'Please select at least one symbol'
       },
+      lat: value => {
+        if (!value) return 'Please wait for location to be determined'
+      },
+      lng: value => {
+        if (!value) return 'Please wait for location to be determined'
+      },
     },
   })
 
   const [response, setResponse] = useState<AIResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [language, setLanguage] = useState<string>('dutch')
   const [file, setFile] = useState<File | null>(null)
-  const [storageUrls, setStorageUrls] = useState<{ sm: string; lg: string } | null>(null)
 
   const geo = useGeolocation({
     enableHighAccuracy: true,
@@ -88,7 +98,6 @@ export const Dashboard = () => {
     if (!file) {
       form.reset()
       setResponse(null)
-      setStorageUrls(null)
     }
   }, [file])
 
@@ -122,13 +131,15 @@ export const Dashboard = () => {
 
       const mimeType = uploadResultSm.metadata.contentType
 
-      setStorageUrls({
-        sm: uploadResultSm.ref.toString(),
-        lg: uploadResultLg.ref.toString(),
+      form.setValues({
+        storageUrls: {
+          sm: uploadResultSm.ref.toString(),
+          lg: uploadResultLg.ref.toString(),
+        },
       })
 
       const prompt = JSON.stringify({
-        context: `This is a picture of a sign written in ${language} that forbids bicycles from being parked here. Following the instructions in each of the response fields, please provide the requested information. The response should be an object with the following keys: ${KEYS.join()}.`,
+        context: `This is a picture of a sign written in ${form.values.language} that forbids bicycles from being parked here. Following the instructions in each of the response fields, please provide the requested information. The response should be an object with the following keys: ${KEYS.join()}.`,
         response_fields,
       })
 
@@ -144,6 +155,10 @@ export const Dashboard = () => {
       // To generate text output, call generateContent with the text input
       const { response } = await model.generateContent([prompt, imagePart])
       const resData = JSON.parse(response.text())
+      // Add the coordinates to the response data so
+      // that they are frozen at that point of analysis
+      resData.lat = geo.latitude
+      resData.lng = geo.longitude
       form.setValues(resData)
       setResponse(resData)
     } catch (error) {
@@ -156,14 +171,12 @@ export const Dashboard = () => {
     if (form.validate().hasErrors) {
       return
     }
-
-    if (!storageUrls || !geo.latitude || !geo.longitude) return
-    setLoading(true)
-
     const values = form.getValues()
 
+    setLoading(true)
+
     const data = {
-      language,
+      language: values.language,
       symbols: values.symbols,
       condition: values.condition,
       location: values.location,
@@ -175,9 +188,10 @@ export const Dashboard = () => {
       design: values.design,
       tone: convertNaToNull(values.tone),
       shape: values.shape,
-      storage_urls: storageUrls,
+      storage_urls: values.storageUrls,
       created_at: new Timestamp(Date.now() / 1000, 0),
-      coordinates: new GeoPoint(geo.latitude, geo.longitude),
+      // Can coerce to number because of validation
+      coordinates: new GeoPoint(values.lat!, values.lng!),
     }
 
     await addDoc(collection(db, 'signs'), data)
@@ -188,6 +202,8 @@ export const Dashboard = () => {
   }
 
   const geoLastUpdated = dayjs(geo.timestamp).fromNow()
+  const formCoordinates =
+    form.values.lat && form.values.lng ? `${form.values.lat}, ${form.values.lng}` : null
 
   return (
     <Stack p='lg'>
@@ -204,16 +220,17 @@ export const Dashboard = () => {
           flex={1}
           data={['dutch', 'english']}
           label='Language'
-          value={language}
-          onChange={lang => {
-            setLanguage(lang as string)
-          }}
+          key={form.key('language')}
+          {...form.getInputProps('language')}
         />
         <TextInput
           flex={2}
           disabled
+          error={form.errors.lat || form.errors.lng}
           label={`Coordinates (${geo.loading ? '' : geoLastUpdated})`}
-          value={geo.loading ? 'Loading...' : `${geo.latitude}, ${geo.longitude}`}
+          // Show form values if available, otherwise show geolocation.
+          // The form values are frozen once the image is analyzed and will be those that are submitted.
+          value={formCoordinates || `${geo.latitude}, ${geo.longitude}`}
         />
       </Group>
       {file && (
@@ -252,7 +269,7 @@ export const Dashboard = () => {
               key={form.key('condition')}
               {...form.getInputProps('condition')}
             />
-            <Autocomplete
+            <Select
               flex={1}
               label='Location'
               data={Options.LOCATION}
@@ -277,14 +294,14 @@ export const Dashboard = () => {
             />
           </Group>
           <Group>
-            <Autocomplete
+            <Select
               flex={1}
               label='Shape'
               data={Options.SHAPE}
               key={form.key('shape')}
               {...form.getInputProps('shape')}
             />
-            <Autocomplete
+            <Select
               flex={1}
               label='Material'
               data={Options.MATERIAL}
